@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#12202e">
+<meta name="description" content="منصة هندسية جيومكانية لرصد وتوثيق المباني الآيلة للسقوط والتحليل المكاني للخطورة ودعم القرار.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://server.arcgisonline.com https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.basemaps.cartocdn.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="المباني الخطرة">
+<title>منظومة السلامة والمباني الخطرة · DBAS</title>
+<link rel="preload" href="vendor/fonts/tajawal-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.draw.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<noscript><style>#splash{display:none}</style><div class="noscript">تحتاج «منظومة السلامة والمباني الخطرة» إلى تفعيل JavaScript في المتصفح كي يعمل. فعّله ثم أعد تحميل الصفحة.</div></noscript>
+<div id="splash" role="status" aria-live="polite"><div class="sp"><img src="icons/icon-192.png" alt=""><b>منظومة السلامة والمباني الخطرة</b><span class="sp-en">Dangerous Buildings Assessment System</span><div class="spin"></div><small id="splashMsg">جارٍ التحميل…</small><div id="splashFail" class="hide" role="alert"><p>تعذّر التحميل، أعد المحاولة.</p><button class="btn pri" id="splashRetry" type="button">إعادة المحاولة</button></div></div></div>
+
+<!-- ============ الدخول ============ -->
+<div id="authView" class="hide"><div class="authwrap"><div class="authcard">
+  <div class="ah"><img src="icons/icon-192.png" alt=""><div><b>منظومة السلامة والمباني الخطرة</b><small class="ah-en">Dangerous Buildings Assessment System (DBAS)</small><small>رصد المباني الآيلة للسقوط · تحليل مكاني للخطورة · دعم القرار</small></div></div>
+  <form class="ab" id="authForm" novalidate>
+    <p class="hint" style="margin:0 0 14px">الدخول مطلوب لإدخال البيانات ومزامنتها مع الفريق.</p>
+    <div class="f">
+      <div class="w hide" id="nameLbl"><label for="fullName">الاسم الكامل</label><input id="fullName" autocomplete="name"></div>
+      <div class="w"><label for="email">البريد الإلكتروني</label><input id="email" type="email" dir="ltr" autocomplete="email" required></div>
+      <div class="w"><label for="pass">كلمة المرور</label><input id="pass" type="password" dir="ltr" autocomplete="current-password" required minlength="8"><div class="hint hide" id="passHint">8 أحرف على الأقل، وتتضمن حرفاً ورقماً.</div></div>
+    </div>
+    <div id="authMsg" aria-live="polite"></div>
+    <div class="row" style="margin-top:14px"><button class="btn pri" id="authGo" type="submit">دخول</button><button class="btn" id="authSwap" type="button">إنشاء حساب جديد</button></div>
+  </form>
+  <div class="af">الحسابات الجديدة تحتاج موافقة المدير قبل الاستخدام.</div>
+</div></div></div>
+
+<div id="pendingView" class="hide"><div class="authwrap"><div class="authcard">
+  <div class="ah"><img src="icons/icon-192.png" alt=""><div><b id="pendT">حسابك بانتظار الموافقة</b><small>منظومة السلامة والمباني الخطرة</small></div></div>
+  <div class="ab"><p style="margin-top:0">تم إنشاء الحساب. يمكنك الدخول بعد أن يوافق عليه المدير ويحدد نطاق عملك.</p><button class="btn" data-act="logout" type="button">تسجيل الخروج</button></div>
+</div></div></div>
+
+<div id="blockedView" class="hide"><div class="authwrap"><div class="authcard">
+  <div class="ah"><img src="icons/icon-192.png" alt=""><div><b id="blkT">تم إيقاف حسابك</b><small>منظومة السلامة والمباني الخطرة</small></div></div>
+  <div class="ab"><p style="margin-top:0" id="blkM">أوقف المدير هذا الحساب مؤقتاً، فلا يمكنك الوصول إلى السجلات أو إدخال بيانات جديدة. تواصل مع المدير لإعادة تفعيله.</p><p class="hint" id="blkR"></p><button class="btn" data-act="logout" type="button">تسجيل الخروج</button></div>
+</div></div></div>
+
+<!-- ============ التطبيق ============ -->
+<div id="appView" class="hide">
+  <header id="hdr">
+    <div class="brand"><img src="icons/icon-192.png" alt=""><div><h1>منظومة السلامة والمباني الخطرة</h1><p>رصد المباني الآيلة للسقوط · تحليل الخطورة · دعم القرار</p></div></div>
+    <div class="tools">
+      <button class="btn gold hide" id="instBtn" type="button">تثبيت التطبيق</button>
+      <span class="chip hide" id="netBadge" style="--c:#9d1c1c">غير متصل</span>
+      <button class="btn dk hide" id="draftsBtn" type="button"></button>
+      <span class="who"><span class="anon" id="who"></span><span class="av" id="whoAv" aria-hidden="true"></span></span>
+      <button class="btn dk" data-act="logout" type="button" title="تسجيل الخروج"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l-5-5 5-5M5 12h12"/></svg><span>خروج</span></button>
+      <div class="gs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" dir="auto" autocomplete="off" placeholder="بحث أو إحداثيات…" aria-label="بحث بالاسم أو المعرّف أو الإحداثيات" title="اكتب اسماً أو معرّفاً للتصفية، أو إحداثيات (31.5017, 34.4668 أو UTM 36N 639300 3486100) ثم Enter للانتقال"><button type="button" class="gsx hide" aria-label="مسح البحث">×</button></div>
+    </div>
+  </header>
+  <nav id="nav" aria-label="الأقسام">
+    <button type="button" data-v="dash" class="on" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>المؤشرات</button>
+    <button type="button" data-v="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>السجلات</button>
+    <button type="button" data-v="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><path d="M12 7v5M9.5 9.5h5"/></svg>التقييم الميداني</button>
+    <button type="button" data-v="mapv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>الخريطة</button>
+    <button type="button" data-v="spat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5" opacity=".6"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>التحليل المكاني</button>
+    <button type="button" data-v="imp" id="impTab" class="hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>الاستيراد</button>
+    <button type="button" data-v="users" id="usersTab" class="hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg>الإدارة</button>
+    <button type="button" data-v="monitor" id="monTab" class="hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12h4l2 7 4-14 2 7h6"/></svg>المراقبة</button>
+  </nav>
+  <section class="filters" id="filters" aria-label="الفلاتر">
+    <select id="fRisk" aria-label="مستوى الخطورة"></select><select id="fStruct" aria-label="نوع الهيكل الإنشائي"></select><select id="fElem" aria-label="العنصر المتضرر"></select><select id="fOcc" aria-label="حالة الإشغال"></select><select id="fDist" aria-label="الحي"></select><span class="fitem hide"><select id="fSub" aria-label="المنطقة الفرعية"></select></span><select id="fSt" aria-label="حالة المراجعة والقرار"></select>
+    <button class="btn" id="fClr" type="button">مسح الفلاتر</button><span class="fcount" id="fCount"></span>
+  </section>
+  <div id="scopeMsg" class="msg warn hide" style="margin:12px 20px"></div>
+  <main>
+    <section id="dash"></section>
+
+    <section id="list" class="hide"><div class="card">
+      <h2>سجل المباني الخطرة <span class="tools"><span class="st" id="cnt"></span>
+        <label class="hint" title="يحذف الأسماء والعناوين والملاحظات ويقرّب الإحداثيات (~100 م)"><input type="checkbox" class="anonc" style="width:auto"> تصدير مُجهَّل</label>
+        <button class="btn" data-x="xlsx" type="button" title="مصنّف Excel متعدد الأوراق">Excel</button><button class="btn" data-x="geob" type="button" title="معلم لكل مبنى (بصمة أو نقطة) بكل حقول السلامة الإنشائية">GeoJSON</button><button class="btn" data-x="csvb" type="button" title="صف لكل مبنى">CSV</button></span></h2>
+      <div id="bulk" class="pane hide noprint"><b id="selN"></b>
+        <button class="btn sm pri" id="bAp" type="button">اعتماد المحدد</button><button class="btn sm" id="bRj" type="button">رفض المحدد</button><button class="btn sm bad" id="bDel" type="button">حذف المحدد</button><button class="btn sm" id="bClr" type="button">إلغاء التحديد</button></div>
+      <div class="tblwrap"><table><thead><tr><th class="cb"><input type="checkbox" id="selAll" aria-label="تحديد الكل"></th><th>معرّف المبنى</th><th>المالك / المرفق</th><th>مهندس الحصر</th><th>الهيكل الإنشائي</th><th>مستوى الخطورة</th><th>الحي</th><th>المراجعة / القرار</th><th><span class="sr-only">الإجراءات</span></th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div id="pager" class="pane hide" style="text-align:center;border-top:1px solid var(--line2)"></div>
+      <div id="empty" class="empty hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M8 11h6"/></svg><b>لا توجد سجلات مطابقة</b><span>عدّل الفلاتر أو سجّل تقييماً جديداً من «التقييم الميداني».</span></div>
+    </div></section>
+
+    <section id="add" class="hide"><div class="pickwrap">
+      <div id="pick"></div>
+      <div class="ptool noprint">
+        <button class="btn sm" id="gps" type="button">استخدم موقعي الحالي</button>
+        <button class="btn sm pri hide" id="reopenAdd" type="button">فتح نموذج التسجيل</button>
+        <span id="refAdmin" class="hide"><button class="btn" id="refPick" type="button">تحميل طبقة من ملف…</button><input id="refF" type="file" accept=".geojson,.json,.zip" class="hide" tabindex="-1" aria-hidden="true"><button class="btn" id="refM" type="button">مطابقة الحقول</button><button class="btn" id="refPub" type="button">نشر على الخادم</button><button class="btn" id="refSrv" type="button">طبقات الخادم</button></span>
+        <details class="phelp"><summary>مساعدة</summary><div class="hint">انقر على أي بصمة مبنى أو على أي نقطة في الخريطة فيُفتح نموذج التسجيل مباشرة. ارسم حدود المبنى (مضلع أو مستطيل) فتُحسب المساحة والمحيط، أو انقر على بصمة مرجعية ثم عدّل رؤوسها بأداة التعديل، أو انقر لتحديد نقطة فقط.</div></details>
+        <span class="hint" id="refS"></span>
+      </div>
+      <div class="leg pleg noprint"><span><i style="--c:#4fd1d9"></i>غير موثّق</span><span><i style="--c:#e8590c"></i>مُقيَّم (اللون = مستوى الخطورة)</span><span><i style="--c:#f2b705"></i>المحدد الآن</span><label><input type="checkbox" id="refOnly" style="width:auto"> إخفاء المباني الموثّقة</label></div>
+    </div></section>
+
+    <section id="mapv" class="hide"><div class="card">
+      <h2>الخرائط المكانية التفاعلية <span class="tools"><select id="base" class="btn" aria-label="خلفية الخريطة"><option value="sat">أقمار صناعية</option><option value="osm">شوارع OSM</option><option value="lt">خريطة فاتحة</option></select>
+      <select id="lyr" class="btn" aria-label="طبقة العرض"><option value="pts">نقاط</option><option value="heat">خريطة حرارية</option></select></span></h2>
+      <div id="map"></div><div class="leg" id="leg"></div>
+    </div></section>
+
+    <section id="spat" class="hide">
+      <div class="card noprint"><h2>التحليل المكاني للخطورة ودعم القرار <span class="hint">يتبع الفلاتر العلوية (الخطورة، الهيكل، الحي…)</span></h2><div class="pane">
+        <div class="row" id="spTabs" style="margin-bottom:10px"></div><div class="f" id="spCtl" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr))"></div></div></div>
+      <div class="card"><h2>الخريطة التحليلية</h2><div id="spm" class="spm"></div><div class="leg" id="spLeg"></div></div>
+      <div class="card"><h2>النتائج والتوصية</h2><div class="pane" id="spRes"><p class="hint">اختر نوع التحليل من الأعلى.</p></div></div>
+    </section>
+
+    <section id="imp" class="hide"><div class="card"><h2>استيراد ملفات (مبانٍ مُقيَّمة)</h2><div class="pane">
+      <p class="hint" style="margin-top:0">الصيغ المدعومة: GeoJSON، وCSV فيه عمودا خط العرض والطول، وShapefile مضغوط (.zip). تُستورد السجلات بحالة «بانتظار المراجعة» وتُتجاهل المكررة والخارجة عن القطاع. أما بصمات المباني التي لم تُقيَّم فحمّلها كـ«طبقة مباني مرجعية» من تبويب «التقييم الميداني» بدل استيرادها.</p>
+      <input type="file" id="iFile" accept=".geojson,.json,.csv,.zip" style="max-width:420px">
+      <div id="iMap" class="hide"><div class="f" style="margin-top:12px">
+        <div><label for="iO">حقل الاسم</label><select id="iO"></select></div>
+        <div><label for="iQ">حقل عدد الطوابق (اختياري)</label><select id="iQ"></select></div>
+        <div><label for="iGF">حقل مستوى الخطورة (اختياري)</label><select id="iGF"></select></div>
+        <div><label for="iT">نوع المبنى (لكل السجلات)</label><select id="iT"></select></div>
+        <div><label for="iG">مستوى الخطورة الافتراضي</label><select id="iG"></select></div>
+        <div><label for="iD">الحي</label><select id="iD"></select></div>
+        <div><label for="iUse">نوع الاستخدام (لكل السجلات)</label><select id="iUse"></select></div>
+        <div><label for="iS">مصدر المعلومة</label><select id="iS"></select></div>
+      </div><div id="iInfo" class="msg warn"></div><button class="btn pri" id="iGo" type="button">استيراد</button></div>
+    </div></div></section>
+
+    <section id="users" class="hide">
+      <div class="card"><h2>النسخ الاحتياطي</h2><div class="pane">
+        <p class="hint" style="margin-top:0"><b>JSON:</b> كل السجلات + المستخدمون (الأدوار والأحياء) + بيانات الطبقات المنشورة، دون كلمات المرور. <b>SQL:</b> السجلات كأوامر إدخال تعيدها في SQL Editor داخل المشروع نفسه. <b>الصور:</b> ملف ZIP بكل الصور. ملفات الطبقات المرجعية غير مشمولة، فاحتفظ بنسخها الأصلية.</p>
+        <div class="row end"><button class="btn pri" id="bkJ" type="button">نسخة JSON (البيانات)</button><button class="btn" id="bkS" type="button">نسخة SQL (السجلات)</button><button class="btn" id="bkP" type="button">نسخة الصور (ZIP)</button></div>
+        <p class="hint" id="bkLast" style="margin-bottom:0"></p>
+      </div></div>
+      <div class="card"><h2>المستخدمون والصلاحيات</h2>
+        <p class="hint" id="uCount" style="font-weight:700"></p>
+        <div class="row" id="uTabs" style="margin-bottom:8px"></div>
+        <div class="row" style="margin-bottom:8px;gap:8px"><input id="uQ" placeholder="بحث بالاسم أو البريد" style="flex:1 1 180px"><select id="uRoleF"></select><select id="uScopeF"></select></div>
+        <div class="row" style="margin-bottom:8px;gap:8px"><button class="btn sm" type="button" data-bulku="approve">موافقة على المحدَّد</button><button class="btn sm" type="button" data-bulku="suspend">إيقاف المحدَّد</button><button class="btn sm" type="button" data-bulku="reactivate">إعادة تفعيل المحدَّد</button></div>
+        <div class="scroll"><table><thead><tr><th><span class="sr-only">تحديد</span></th><th>الاسم</th><th>البريد</th><th>الدور</th><th>الحالة</th><th>تاريخ التسجيل</th><th>تاريخ الموافقة / من</th><th>نطاق العمل</th><th>آخر نشاط</th><th>إجراءات</th></tr></thead><tbody id="urows"></tbody></table></div></div>
+    </section>
+
+    <section id="monitor" class="hide"></section>
+  </main>
+  <div class="foot noprint"><span id="verTxt"></span><button type="button" data-act="about">عن المنصة والمنهجية</button></div>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgT"></dialog>
+<dialog id="ask" aria-labelledby="askT" aria-describedby="askM"><h3 id="askT" style="margin-top:0"></h3><p id="askM"></p><input id="askI" class="hide"><div class="row end"><button class="btn pri" id="askOk" type="button">تأكيد</button><button class="btn" id="askNo" type="button">إلغاء</button></div></dialog>
+<dialog id="addDlg" class="addDlg" aria-labelledby="addT">
+  <h3 class="addH"><span id="addT">تقييم ميداني للسلامة الإنشائية</span><span class="hint" id="addCoord" dir="ltr"></span></h3>
+  <div id="addNote" class="msg ok hide"></div>
+  <div class="f">
+      <div class="w"><label for="aO">اسم المالك / المبنى / المرفق *</label><input id="aO" maxlength="120"></div>
+      <div class="w"><label for="aAs">مهندس الحصر / التقييم الميداني (توثيق تلقائي)</label><input id="aAs" readonly class="ro" aria-readonly="true" aria-describedby="aAsH"><div class="hint" id="aAsH">يُوثَّق تلقائياً باسم حسابك المسجَّل الدخول، ولا يمكن تعديله يدوياً. يظهر في السجل والتقارير المطبوعة.</div></div>
+      <div><label for="aT">نوع المبنى / المرفق *</label><select id="aT"></select></div>
+      <div><label for="aUse">نوع الاستخدام *</label><select id="aUse"></select></div>
+      <div class="w cond" id="aCond">
+        <div id="aGovBox" class="hide"><label for="aGov">الفئة الحكومية</label><select id="aGov"></select></div>
+        <div id="aUbox" class="hide"><label for="aU">عدد الوحدات السكنية</label><input id="aU" type="number" min="0"><div class="hint" id="aUH"></div><button type="button" class="btn sm" id="uReset" style="margin-top:4px">إعادة الحساب التلقائي</button></div>
+      </div>
+      <div><label for="aStruct">نوع الهيكل الإنشائي *</label><select id="aStruct"></select></div>
+      <div><label for="aQ" id="aQL">عدد الطوابق</label><input id="aQ" type="number" min="1" max="60" value="1"></div>
+      <div class="w riskbox"><label for="aRisk">مستوى الخطورة الإنشائية *</label><select id="aRisk"></select><div class="hint" id="aRiskH"></div></div>
+      <fieldset class="w chk" id="aElems"><legend>العناصر الإنشائية المتضررة</legend></fieldset>
+      <fieldset class="w chk" id="aIndic"><legend>مؤشرات التلف الإنشائي</legend></fieldset>
+      <div><label for="aOcc">حالة الإشغال *</label><select id="aOcc"></select></div>
+      <div><label for="aG">درجة الضرر (اختياري)</label><select id="aG"></select></div>
+      <div><label for="aFam">الأسر المعرّضة للخطر المباشر</label><input id="aFam" type="number" min="0"></div>
+      <div><label for="aPer">الأفراد المعرّضون للخطر المباشر</label><input id="aPer" type="number" min="0"></div>
+      <fieldset class="w chk" id="aProx"><legend>القرب من مرافق حيوية</legend></fieldset>
+      <fieldset class="w chk reco" id="aReco"><legend>التوصية الهندسية الإلزامية * <span class="hint">(واحدة على الأقل — القرار النهائي للجنة الهندسية)</span></legend></fieldset>
+      <div class="w"><label for="aD">الحي / المنطقة *</label><select id="aD"></select></div>
+      <div class="w"><b id="areaOut" class="hint" aria-live="polite"></b></div>
+      <div class="w f" style="padding:0" id="aTechSlot"></div>
+      <div class="w"><label for="aS">وصف الموقع / المعالم القريبة</label><input id="aS" maxlength="160"></div>
+      <div><label for="aLat">خط العرض *</label><input id="aLat" type="number" step="any" dir="ltr"></div>
+      <div><label for="aLng">خط الطول *</label><input id="aLng" type="number" step="any" dir="ltr"></div>
+      <div class="w"><label for="aN">ملاحظات المعاينة الهندسية</label><textarea id="aN" rows="2" maxlength="500"></textarea></div>
+      <div><label for="aSrc">مصدر المعلومة</label><select id="aSrc"></select></div>
+      <div><label for="aP">صور الإثبات (حتى 5)</label><input id="aP" type="file" accept="image/*" multiple><div class="hint">تُضغط الصور وتُحذف بيانات موقعها (EXIF) قبل الرفع.</div></div>
+  </div>
+  <div id="addMsg" aria-live="polite"></div>
+  <div class="row" style="margin-top:12px"><button class="btn pri" id="save" type="button">حفظ التقييم</button><button class="btn" id="addCancel" type="button">إلغاء</button></div>
+</dialog>
+
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<!-- حارس التحميل: أول سكربت (بلا defer) يرصد فشل أي سكربت أو بقاء شاشة البدء أكثر من 15 ثانية -->
+<script src="js/bootguard.js"></script>
+<!-- المكتبات (مستضافة محلياً: تعمل دون اتصال ولا تعتمد على CDN خارجي) -->
+<script src="vendor/leaflet/leaflet.js" defer></script>
+<script src="vendor/leaflet/leaflet.draw.js" defer></script>
+<script src="vendor/leaflet-heat.js" defer></script>
+<script src="vendor/chart.umd.js" defer></script>
+<script src="vendor/jszip.min.js" defer></script>
+<script src="vendor/shp.min.js" defer></script>
+<script src="vendor/supabase.js" defer></script>
+<!-- وحدات التطبيق (الترتيب مهم) -->
+<script src="js/config.js" defer></script>
+<script src="js/core.js" defer></script>
+<script src="js/audit.js" defer></script>
+<script src="js/ui.js" defer></script>
+<script src="js/offline.js" defer></script>
+<script src="js/auth.js" defer></script>
+<script src="js/data.js" defer></script>
+<script src="js/dashboard.js" defer></script>
+<script src="js/records.js" defer></script>
+<script src="js/export.js" defer></script>
+<script src="js/reports.js" defer></script>
+<script src="js/field.js" defer></script>
+<script src="js/map.js" defer></script>
+<script src="js/reflayers.js" defer></script>
+<script src="js/import.js" defer></script>
+<script src="js/admin.js" defer></script>
+<script src="js/monitor.js" defer></script>
+<script src="js/spatial.js" defer></script>
+<script src="js/app.js" defer></script>
+</body>
+</html>

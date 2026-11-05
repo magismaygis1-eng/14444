@@ -1,0 +1,72 @@
+{
+  "id": "./?app=dbas-gaza",
+  "name": "منظومة السلامة والمباني الخطرة",
+  "short_name": "المباني الخطرة",
+  "description": "منصة هندسية جيومكانية لرصد وتوثيق المباني الآيلة للسقوط والتحليل المكاني للخطورة ودعم القرار. تعمل دون اتصال.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#12202e",
+  "theme_color": "#12202e",
+  "categories": [
+    "productivity",
+    "utilities",
+    "navigation"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "التقييم الميداني",
+      "short_name": "تقييم",
+      "url": "./?v=add",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "الخريطة",
+      "url": "./?v=mapv",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "السجلات",
+      "url": "./?v=list",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
